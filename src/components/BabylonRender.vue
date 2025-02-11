@@ -17,7 +17,7 @@ let scene: BABYLON.Scene;
 
 let materialManager: MaterialManager;
 
-onMounted(() => {
+onMounted(async () => {
   if (!canvasRef.value) return;
 
   OBJFileLoader.COMPUTE_NORMALS = true;
@@ -34,28 +34,58 @@ onMounted(() => {
   camera.maxZ = 100;
 
 
-  const skylight1 = new BABYLON.HemisphericLight('skylight', new BABYLON.Vector3(-1, 1, 0), scene);
-  skylight1.diffuse = new BABYLON.Color3(1, 1, 1);
+  const skylight1 = new BABYLON.HemisphericLight('skylight', new BABYLON.Vector3(0, 1, 0), scene);
+  skylight1.intensity = 1
+  skylight1.groundColor = new BABYLON.Color3(0.2, 0.2, 0.2);
+  skylight1.diffuse = new BABYLON.Color3(0.6, 0.6, 0.6);
 
-  const skylight2 = new BABYLON.HemisphericLight('skylight', new BABYLON.Vector3(1, 0, 0), scene);
-  skylight2.diffuse = new BABYLON.Color3(1, 1, 1);
+  const skylight2 = new BABYLON.HemisphericLight('skylight', new BABYLON.Vector3(-1, -2, -1), scene);
+  skylight2.intensity = 1
+  skylight2.diffuse = new BABYLON.Color3(0.6, 0.6, 0.6);
 
   // // 平行光
-  const dirlight = new BABYLON.DirectionalLight('dirlight', new BABYLON.Vector3(0, -1, -2), scene);
-  dirlight.diffuse = new BABYLON.Color3(1, 1, 1);
+  const dirlight = new BABYLON.DirectionalLight('dirlight', new BABYLON.Vector3(1, -1, 1), scene);
+  dirlight.intensity = 1
+  dirlight.diffuse = new BABYLON.Color3(0.6, 0.6, 0.6);
 
 
-  BABYLON.SceneLoader.ImportMesh('', '/models/', 'tripo.glb', scene, function (meshes: BABYLON.Mesh[]) {
-    loadMeshes.value = meshes;
-    materialManager = new MaterialManager(meshes)
+  const scence = await BABYLON.SceneLoader.AppendAsync('/models/tripo.glb', null, scene);
 
-    meshes.forEach((mesh) => {
-      if (!mesh.material) return;
-      mesh.material.albedoColor = new BABYLON.Color3(1, 1, 1); // 设置基础颜色
-      mesh.material.metallic = 1; // 设置金属度
-      mesh.material.roughness = 0.2; // 设置粗糙度
-    });
+  loadMeshes.value = scence.meshes;
+  materialManager = new MaterialManager(scence.meshes)
+
+  scence.meshes.forEach((mesh: any) => {
+    if (!mesh.material) return;
+    mesh.material.albedoColor = new BABYLON.Color3(0.95, 0.95, 0.95); // 设置基础颜色
+    mesh.material.metallic = 0.3; // 设置金属度
+    mesh.material.roughness = 0.5; // 设置粗糙度
+
+    mesh.material.environmentIntensity = 0.7;
+    mesh.material.reflectivityColor = new BABYLON.Color3(0.9, 0.9, 0.9);
   });
+
+
+  // 3. 添加后处理效果
+  const pipeline = new BABYLON.DefaultRenderingPipeline(
+    "defaultPipeline",
+    true,
+    scene,
+    [camera]
+  );
+
+  // 调整图像处理效果
+  pipeline.imageProcessing.contrast = 1.1;
+  pipeline.imageProcessing.exposure = 1.2;
+
+  // 添加环境光遮蔽(SSAO)
+  const ssao = new BABYLON.SSAO2RenderingPipeline(
+    "ssao",
+    scene,
+    0.5
+  );
+  ssao.radius = 0.03;
+  ssao.totalStrength = 1.0;
+  ssao.expensiveBlur = true;
 
 
 
