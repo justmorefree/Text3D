@@ -3,18 +3,15 @@ import { onMounted, ref, watch, markRaw } from 'vue';
 import * as BABYLON from '@babylonjs/core';
 import '@babylonjs/loaders/OBJ';
 import { OBJFileLoader } from "@babylonjs/loaders/OBJ/objFileLoader";
-
-// import "@babylonjs/loaders/glTF/2.0";
-
 import { registerBuiltInLoaders } from "@babylonjs/loaders/dynamic";
 import { MaterialManager } from './MaterialManager';
 registerBuiltInLoaders();
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 const loadMeshes = ref<BABYLON.Mesh[]>([]);
-const materialType = ref<'white' | 'normal'>('white');
+const materialType = ref<"texture" | "white" | "faxian">('texture');
 let scene: BABYLON.Scene;
-
+let pipeline: BABYLON.DefaultRenderingPipeline;
 let materialManager: MaterialManager;
 
 onMounted(async () => {
@@ -25,6 +22,7 @@ onMounted(async () => {
 
   const engine = new BABYLON.Engine(canvasRef.value, true);
   scene = new BABYLON.Scene(engine);
+  scene.clearColor = new BABYLON.Color4(0, 0, 0, 0)
 
   const camera = new BABYLON.ArcRotateCamera('camera', Math.PI / 2, Math.PI / 2, 3, BABYLON.Vector3.Zero(), scene);
   camera.attachControl(canvasRef.value, true);
@@ -33,59 +31,49 @@ onMounted(async () => {
   camera.minZ = 0.1;
   camera.maxZ = 100;
 
+  const pointlight = new BABYLON.PointLight("pointLight", new BABYLON.Vector3(2, 0, 2), scene);
+  pointlight.intensity = 5;
+  pointlight.diffuse = new BABYLON.Color3(0.92, 0.577, 0.28);
 
   const skylight1 = new BABYLON.HemisphericLight('skylight', new BABYLON.Vector3(0, 1, 0), scene);
-  skylight1.intensity = 1
+  skylight1.intensity = 2.5;
   skylight1.groundColor = new BABYLON.Color3(0.2, 0.2, 0.2);
   skylight1.diffuse = new BABYLON.Color3(0.6, 0.6, 0.6);
 
-  const skylight2 = new BABYLON.HemisphericLight('skylight', new BABYLON.Vector3(-1, -2, -1), scene);
-  skylight2.intensity = 1
-  skylight2.diffuse = new BABYLON.Color3(0.6, 0.6, 0.6);
-
-  // // 平行光
-  const dirlight = new BABYLON.DirectionalLight('dirlight', new BABYLON.Vector3(1, -1, 1), scene);
-  dirlight.intensity = 1
-  dirlight.diffuse = new BABYLON.Color3(0.6, 0.6, 0.6);
+  const sceneObj = await BABYLON.SceneLoader.AppendAsync('/models/dragon.glb', null, scene);
+  loadMeshes.value = sceneObj.meshes;
 
 
-  const scence = await BABYLON.SceneLoader.AppendAsync('/models/tripo.glb', null, scene);
-
-  loadMeshes.value = scence.meshes;
-  materialManager = new MaterialManager(scence.meshes)
-
-  scence.meshes.forEach((mesh: any) => {
+  // 加载模型后，对材质特殊设置
+  sceneObj.meshes.forEach((mesh: any) => {
     if (!mesh.material) return;
-    mesh.material.albedoColor = new BABYLON.Color3(0.95, 0.95, 0.95); // 设置基础颜色
-    mesh.material.metallic = 0.3; // 设置金属度
-    mesh.material.roughness = 0.5; // 设置粗糙度
 
-    mesh.material.environmentIntensity = 0.7;
-    mesh.material.reflectivityColor = new BABYLON.Color3(0.9, 0.9, 0.9);
+    if (!mesh.material.albedoTexture) {
+      mesh.material.albedoColor = new BABYLON.Color3(0.95, 0.95, 0.95); // 设置基础颜色
+    }
+
+    if (!mesh.material.metallicTexture) {
+      mesh.material.metallic = 0.3; // 设置金属度
+      if (mesh.material.useRoughnessFromMetallicTextureGreen || mesh.material.materialuseRoughnessFromMetallicTextureAlpha)
+        mesh.material.roughness = 0.5; // 设置粗糙度
+    }
+
+    mesh.material.environmentIntensity = 2.5;
   });
+
+  // 初始化材质管理类
+  materialManager = new MaterialManager(sceneObj.meshes)
 
 
   // 3. 添加后处理效果
-  const pipeline = new BABYLON.DefaultRenderingPipeline(
+  pipeline = new BABYLON.DefaultRenderingPipeline(
     "defaultPipeline",
     true,
     scene,
     [camera]
   );
-
-  // 调整图像处理效果
-  pipeline.imageProcessing.contrast = 1.1;
-  pipeline.imageProcessing.exposure = 1.2;
-
-  // 添加环境光遮蔽(SSAO)
-  const ssao = new BABYLON.SSAO2RenderingPipeline(
-    "ssao",
-    scene,
-    0.5
-  );
-  ssao.radius = 0.03;
-  ssao.totalStrength = 1.0;
-  ssao.expensiveBlur = true;
+  pipeline.imageProcessing.contrast = 1.8;
+  pipeline.samples = 4;
 
 
 
@@ -99,14 +87,8 @@ onMounted(async () => {
 });
 
 
-
-const setMaterial = (meshes: BABYLON.Mesh[], material: BABYLON.Material) => {
-  meshes.forEach(mesh => {
-    mesh.material = material;
-  });
-}
-
 const getWhiteMaterial = () => {
+  if (!scene) throw new Error('Scene not initialized');
   const pbrMaterial = new BABYLON.PBRMaterial("pbrMaterial", scene);
   pbrMaterial.albedoColor = new BABYLON.Color3(1, 1, 1); // 设置基础颜色
   pbrMaterial.metallic = 0.0; // 设置金属度
@@ -157,11 +139,14 @@ const getFaxianMaterial = () => {
 
 watch([loadMeshes, materialType], () => {
   if (loadMeshes.value.length > 0) {
-    if (materialType.value === "white") {
-      // materialManager.restoreOriginal()
-      // materialManager.applyNewMaterial(getWhiteMaterial())
-    } else {
+    if (materialType.value === "texture") {
+      materialManager.restoreOriginal()
+      pipeline.imageProcessingEnabled = true;
+    } else if (materialType.value === "faxian") {
+      pipeline.imageProcessingEnabled = false;
       materialManager.applyNewMaterial(getFaxianMaterial())
+    } else {
+      materialManager.applyNewMaterial(getWhiteMaterial())
     }
 
   }
@@ -171,8 +156,9 @@ watch([loadMeshes, materialType], () => {
 <template>
   <div class="box">
     <canvas ref="canvasRef" class="canvas"></canvas>
-    <button @click="materialType = 'normal'" class="btn-1">法线</button>
+    <button @click="materialType = 'faxian'" class="btn-1">法线</button>
     <button @click="materialType = 'white'" class="btn-2">白膜</button>
+    <button @click="materialType = 'texture'" class="btn-3">纹理</button>
   </div>
 
 </template>
@@ -185,6 +171,7 @@ watch([loadMeshes, materialType], () => {
   display: flex;
   justify-content: center;
   align-items: center;
+  background: #333;
 }
 
 .canvas {
@@ -212,5 +199,12 @@ watch([loadMeshes, materialType], () => {
   position: absolute;
   top: 0;
   left: 100px;
+}
+
+.btn-3 {
+  margin: 10px;
+  position: absolute;
+  top: 0;
+  left: 200px;
 }
 </style>
