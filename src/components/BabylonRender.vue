@@ -14,6 +14,9 @@ let scene: BABYLON.Scene;
 let pipeline: BABYLON.DefaultRenderingPipeline;
 let materialManager: MaterialManager;
 
+let skylight1: BABYLON.HemisphericLight;
+let pointlight: BABYLON.PointLight;
+
 onMounted(async () => {
   if (!canvasRef.value) return;
 
@@ -24,21 +27,22 @@ onMounted(async () => {
   scene = new BABYLON.Scene(engine);
   scene.clearColor = new BABYLON.Color4(0, 0, 0, 0)
 
-  const camera = new BABYLON.ArcRotateCamera('camera', Math.PI / 2, Math.PI / 2, 3, BABYLON.Vector3.Zero(), scene);
+  const camera = new BABYLON.ArcRotateCamera('camera', Math.PI / 2, Math.PI / 2, 4, BABYLON.Vector3.Zero(), scene);
   camera.attachControl(canvasRef.value, true);
   camera.lowerRadiusLimit = 1.3;
   camera.upperRadiusLimit = 5;
   camera.minZ = 0.1;
   camera.maxZ = 100;
 
-  const pointlight = new BABYLON.PointLight("pointLight", new BABYLON.Vector3(2, 0, 2), scene);
-  pointlight.intensity = 5;
-  pointlight.diffuse = new BABYLON.Color3(0.92, 0.577, 0.28);
-
-  const skylight1 = new BABYLON.HemisphericLight('skylight', new BABYLON.Vector3(0, 1, 0), scene);
+  skylight1 = new BABYLON.HemisphericLight('skylight', new BABYLON.Vector3(0, 1, 0), scene);
   skylight1.intensity = 2.5;
   skylight1.groundColor = new BABYLON.Color3(0.2, 0.2, 0.2);
   skylight1.diffuse = new BABYLON.Color3(0.6, 0.6, 0.6);
+
+  pointlight = new BABYLON.PointLight("pointLight", new BABYLON.Vector3(2, 0, 2), scene);
+  pointlight.intensity = 5;
+  pointlight.diffuse = new BABYLON.Color3(0.92, 0.577, 0.28);
+
 
   const sceneObj = await BABYLON.SceneLoader.AppendAsync('/models/dragon.glb', null, scene);
   loadMeshes.value = sceneObj.meshes;
@@ -146,6 +150,9 @@ watch([loadMeshes, materialType], () => {
       pipeline.imageProcessingEnabled = false;
       materialManager.applyNewMaterial(getFaxianMaterial())
     } else {
+      //白膜亮度
+      skylight1.intensity = 1.8;
+      pointlight.intensity = 1.8;
       materialManager.applyNewMaterial(getWhiteMaterial())
     }
 
