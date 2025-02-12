@@ -22,10 +22,12 @@ onMounted(async () => {
 
   OBJFileLoader.COMPUTE_NORMALS = true;
 
-
   const engine = new BABYLON.Engine(canvasRef.value, true);
   scene = new BABYLON.Scene(engine);
   scene.clearColor = new BABYLON.Color4(0, 0, 0, 0)
+	
+  // Environment Texture
+  const envTexture = new BABYLON.EquiRectangularCubeTexture('env.webp', scene, 512, false);
 
   const camera = new BABYLON.ArcRotateCamera('camera', Math.PI / 2, Math.PI / 2, 4, BABYLON.Vector3.Zero(), scene);
   camera.attachControl(canvasRef.value, true);
@@ -58,11 +60,11 @@ onMounted(async () => {
 
     if (!mesh.material.metallicTexture) {
       mesh.material.metallic = 0.3; // 设置金属度
-      if (mesh.material.useRoughnessFromMetallicTextureGreen || mesh.material.materialuseRoughnessFromMetallicTextureAlpha)
+      if (mesh.material.useRoughnessFromMetallicTextureGreen || mesh.material.useRoughnessFromMetallicTextureAlpha)
         mesh.material.roughness = 0.5; // 设置粗糙度
     }
 
-    mesh.material.environmentIntensity = 2.5;
+    mesh.material.reflectionTexture = envTexture;
   });
 
   // 初始化材质管理类
@@ -76,10 +78,21 @@ onMounted(async () => {
     scene,
     [camera]
   );
+  
+  pipeline.bloomEnabled = false;
+  pipeline.chromaticAberrationEnabled = false;
+  pipeline.depthOfFieldEnabled = false;
+  pipeline.fxaaEnabled = false;
+  pipeline.grainEnabled = false;
+  pipeline.sharpenEnabled = false;
+  pipeline.imageProcessingEnabled = true;
   pipeline.imageProcessing.contrast = 1.8;
+  pipeline.imageProcessing.colorCurvesEnabled = false;
+  pipeline.imageProcessing.colorGradingEnabled = false;
+  pipeline.imageProcessing.toneMappingEnabled = false;
+  pipeline.imageProcessing.ditheringEnabled = false;
+  pipeline.imageProcessing.vignetteEnabled = false;
   pipeline.samples = 4;
-
-
 
   engine.runRenderLoop(() => {
     scene.render();
