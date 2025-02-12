@@ -44,7 +44,7 @@ onMounted(async () => {
   pointlight.diffuse = new BABYLON.Color3(0.92, 0.577, 0.28);
 
 
-  const sceneObj = await BABYLON.SceneLoader.AppendAsync('/models/dragon.glb', null, scene);
+  const sceneObj = await BABYLON.SceneLoader.AppendAsync('/models/flower.glb', null, scene);
   loadMeshes.value = sceneObj.meshes;
 
 
