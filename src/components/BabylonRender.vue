@@ -27,7 +27,8 @@ onMounted(async () => {
   scene.clearColor = new BABYLON.Color4(0, 0, 0, 0)
 	
   // Environment Texture
-  const envTexture = new BABYLON.EquiRectangularCubeTexture('env.webp', scene, 512, false);
+  const envTexture = BABYLON.CubeTexture.CreateFromPrefilteredData("studio_small_08_1k.env", scene);
+  envTexture.level = 0.8;
 
   const camera = new BABYLON.ArcRotateCamera('camera', Math.PI / 2, Math.PI / 2, 4, BABYLON.Vector3.Zero(), scene);
   camera.attachControl(canvasRef.value, true);
@@ -37,16 +38,16 @@ onMounted(async () => {
   camera.maxZ = 100;
 
   skylight1 = new BABYLON.HemisphericLight('skylight', new BABYLON.Vector3(0, 1, 0), scene);
-  skylight1.intensity = 2.5;
+  skylight1.intensity = 1.0;
   skylight1.groundColor = new BABYLON.Color3(0.2, 0.2, 0.2);
-  skylight1.diffuse = new BABYLON.Color3(0.6, 0.6, 0.6);
+  skylight1.diffuse = new BABYLON.Color3(0.51, 0.81, 1.0);
 
   pointlight = new BABYLON.PointLight("pointLight", new BABYLON.Vector3(2, 0, 2), scene);
   pointlight.intensity = 5;
   pointlight.diffuse = new BABYLON.Color3(0.92, 0.577, 0.28);
 
 
-  const sceneObj = await BABYLON.SceneLoader.AppendAsync('/models/flower.glb', null, scene);
+  const sceneObj = await BABYLON.SceneLoader.AppendAsync('/models/case/img1.glb', null, scene);
   loadMeshes.value = sceneObj.meshes;
 
 
