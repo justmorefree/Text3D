@@ -40,14 +40,14 @@ onMounted(async () => {
   skylight1 = new BABYLON.HemisphericLight('skylight', new BABYLON.Vector3(0, 1, 0), scene);
   skylight1.intensity = 1.0;
   skylight1.groundColor = new BABYLON.Color3(0.2, 0.2, 0.2);
-  skylight1.diffuse = new BABYLON.Color3(0.51, 0.81, 1.0);
+  skylight1.diffuse = new BABYLON.Color3(0.6, 0.6, 0.6);
 
   pointlight = new BABYLON.PointLight("pointLight", new BABYLON.Vector3(2, 0, 2), scene);
   pointlight.intensity = 5;
   pointlight.diffuse = new BABYLON.Color3(0.92, 0.577, 0.28);
 
 
-  const sceneObj = await BABYLON.SceneLoader.AppendAsync('/models/case/img1.glb', null, scene);
+  const sceneObj = await BABYLON.SceneLoader.AppendAsync('/models/case/img2.glb', null, scene);
   loadMeshes.value = sceneObj.meshes;
 
 
@@ -165,8 +165,8 @@ watch([loadMeshes, materialType], () => {
       materialManager.applyNewMaterial(getFaxianMaterial())
     } else {
       //白膜亮度
-      skylight1.intensity = 1.8;
-      pointlight.intensity = 1.8;
+      skylight1.intensity = 1.0;
+      pointlight.intensity = 1.0;
       materialManager.applyNewMaterial(getWhiteMaterial())
     }
 
